@@ -19,4 +19,9 @@ namespace :db do
     Tradenetic::DB.add_initial_targets
   end
 
+  desc 'gets bars data'
+  task :populate do
+    Tradenetic::DB.populate
+  end
+
 end

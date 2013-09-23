@@ -1,4 +1,5 @@
 require 'mysql2'
+require_relative './providers/google.rb'
 
 module Tradenetic
   module DB
@@ -56,6 +57,27 @@ module Tradenetic
         INSERT INTO target (symbol, type, timeframe) VALUES ('MSFT', 'STK', '1M');
       sql
       client.query(query)
+    end
+
+    def self.populate
+      client = Mysql2::Client.new(:host => "localhost", :username => "root", :database => 'tradenetic')
+      targets = client.query('SELECT * FROM target')
+      targets.each do |target|
+        bars = Tradenetic::Providers::Google.bars(target)
+        save_bars(target, bars)
+      end
+    end
+
+    def self.save_bars(target, bars)
+      client = Mysql2::Client.new(:host => "localhost", :username => "root", :database => 'tradenetic')
+      bars.each do |bar|
+        query = <<-sql
+          INSERT IGNORE INTO bar (target_id, open, high, low, close, volume, time) 
+          VALUES (#{target['id']}, #{bar[:open]}, #{bar[:high]}, #{bar[:low]}, #{bar[:close]},
+            #{bar[:volume]}, '#{bar[:time].strftime('%F %T')}');
+        sql
+        client.query(query)
+      end
     end
 
   end
